@@ -279,14 +279,20 @@
 
   // src/main.ts
   var MyEasyElement = class extends EasyRenderElement {
-    constructor() {
-      super(...arguments);
-      this.text = "123";
-    }
     connectedCallback() {
+      this.bind({text: "123"});
       setTimeout(() => {
-        this.swap("text", "456");
+        const value = "2021-W40";
+        this.swap("text", value);
+        this.swap("value", value);
       }, 2e3);
+      const week = this.shadowRoot?.querySelector("input");
+      if (week) {
+        week.onchange = ({target}) => {
+          const {value} = target;
+          console.log(value);
+        };
+      }
     }
   };
   MyEasyElement = __decorate([
@@ -295,6 +301,8 @@
       name: "easy-element",
       tmpl: tmpl`
     <h1>Text {{text}}</h1>
+
+    <input type="week" value="{{value}}" />
   `
     })
   ], MyEasyElement);

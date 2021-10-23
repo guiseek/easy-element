@@ -3,20 +3,33 @@ import { Easy } from './core/easy'
 
 import './style.css'
 
-@Easy<MyEasyElement>({
+@Easy({
   mode: 'open',
   name: 'easy-element',
   tmpl: tmpl`
     <h1>Text {{text}}</h1>
+
+    <input type="week" value="{{value}}" />
   `,
 })
 export class MyEasyElement extends EasyRenderElement {
-  text = '123'
-  
   connectedCallback() {
+    this.bind({ text: '123' })
+
     setTimeout(() => {
-      this.swap('text', '456')
+      const value = '2021-W40'
+
+      this.swap('text', value)
+      this.swap('value', value)
     }, 2000)
+
+    const week = this.shadowRoot?.querySelector('input')
+    if (week) {
+      week.onchange = ({ target }) => {
+        const { value } = target as HTMLInputElement
+        console.log(value)
+      }
+    }
   }
 }
 
