@@ -1,4 +1,4 @@
-import { EasyRenderElement, html } from './core/render'
+import { EasyRenderElement, tmpl } from './core/render'
 import { Easy } from './core/easy'
 
 import './style.css'
@@ -6,15 +6,17 @@ import './style.css'
 @Easy<MyEasyElement>({
   mode: 'open',
   name: 'easy-element',
-  html: ({ name }) => html`
-    <h1>${ name }</h1>
+  tmpl: tmpl`
+    <h1>Text {{text}}</h1>
   `,
 })
 export class MyEasyElement extends EasyRenderElement {
-  name = 'Um'
+  text = '123'
+  
   connectedCallback() {
-    this.name = 'Dois'
-    setTimeout(() => this.render(this), 2000)
+    setTimeout(() => {
+      this.swap('text', '456')
+    }, 2000)
   }
 }
 

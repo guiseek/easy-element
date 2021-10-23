@@ -1,13 +1,14 @@
+import BoundTemplate from './template/bound'
 import { noop } from './noop'
 
 export type EasyOptions<T> = {
   name: string
-  html?: (params: T) => HTMLTemplateElement
+  tmpl?: HTMLTemplateElement
   style?: HTMLStyleElement
 } & ShadowRootInit
 
 export function Easy<T>(options: EasyOptions<T>) {
-  const { name, html, style, mode } = options
+  const { name, tmpl, style, mode } = options
   return function <T extends CustomElementConstructor>(target: T) {
     const connected = target.prototype.connectedCallback ?? noop
 
@@ -15,19 +16,18 @@ export function Easy<T>(options: EasyOptions<T>) {
       const shadow: ShadowRoot = this.attachShadow({ mode })
       if (style) shadow.appendChild(style)
 
-      target.prototype.render = (params: any) => {
-        if (html) {
-          shadow.innerHTML = ''
-          const { content } = html(params)
-          const template = content.cloneNode(true)
-          shadow.appendChild(template)
-        }
-      }
+      if (tmpl) {
+        const bound = new BoundTemplate(tmpl)
+        const [instance, bindings] = bound.create(this)
 
-      if (html) {
-        const { content } = html(this)
-        const template = content.cloneNode(true)
-        shadow.appendChild(template)
+        target.prototype.bind = (data: T) => {
+          bindings.setData(data)
+        }
+        target.prototype.swap = (name: string, value: any) => {
+          bindings.set(name, value)
+        }
+
+        shadow.appendChild(instance)
       }
 
       connected.call(this)
