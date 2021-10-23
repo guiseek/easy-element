@@ -1,0 +1,20 @@
+{
+  "name": "easy-elements",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node esbuild.config.js",
+    "start": "node esbuild.config.js -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.13.8",
+    "esbuild-serve": "^1.0.1",
+    "typescript": "^4.4.4"
+  }
+}
