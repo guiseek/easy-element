@@ -73,7 +73,9 @@
     Easy({
       mode: "open",
       name: "easy-element",
-      html: ({name}) => html` <h1>${name}</h1> `
+      html: ({name}) => html`
+    <h1>${name}</h1>
+  `
     })
   ], MyEasyElement);
   var easyElement = document.querySelector("easy-element");

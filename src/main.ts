@@ -6,7 +6,9 @@ import './style.css'
 @Easy<MyEasyElement>({
   mode: 'open',
   name: 'easy-element',
-  html: ({ name }) => html` <h1>${name}</h1> `,
+  html: ({ name }) => html`
+    <h1>${ name }</h1>
+  `,
 })
 export class MyEasyElement extends EasyRenderElement {
   name = 'Um'

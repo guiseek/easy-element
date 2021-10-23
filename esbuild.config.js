@@ -7,8 +7,8 @@ esbuildServe(
     logLevel: "info",
     entryPoints: ["src/main.ts"],
     bundle: true,
-    outfile: "public/main.js",
+    outfile: "docs/main.js",
     sourcemap: true,
   },
-  { root: "public" }
+  { root: "docs" }
 );
