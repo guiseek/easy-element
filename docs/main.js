@@ -277,22 +277,22 @@
     };
   }
 
+  // src/core/wait.ts
+  var wait = (time) => {
+    return (fn) => {
+      setTimeout(fn, time * 1e3);
+    };
+  };
+
   // src/main.ts
   var MyEasyElement = class extends EasyRenderElement {
     connectedCallback() {
       this.bind({text: "123"});
-      setTimeout(() => {
+      wait(2)(() => {
         const value = "2021-W40";
         this.swap("text", value);
         this.swap("value", value);
-      }, 2e3);
-      const week = this.shadowRoot?.querySelector("input");
-      if (week) {
-        week.onchange = ({target}) => {
-          const {value} = target;
-          console.log(value);
-        };
-      }
+      });
     }
   };
   MyEasyElement = __decorate([
@@ -306,6 +306,5 @@
   `
     })
   ], MyEasyElement);
-  var easyElement = document.querySelector("easy-element");
 })();
 //# sourceMappingURL=main.js.map
