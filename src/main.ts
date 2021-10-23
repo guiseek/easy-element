@@ -1,21 +1,27 @@
-import { EasyRenderElement, html } from './core/render'
+import { EasyRenderElement, tmpl } from './core/render'
 import { Easy } from './core/easy'
+import { wait } from './core/wait'
 
 import './style.css'
 
-@Easy<MyEasyElement>({
+@Easy({
   mode: 'open',
   name: 'easy-element',
-  html: ({ name }) => html`
-    <h1>${ name }</h1>
+  tmpl: tmpl`
+    <h1>Text {{text}}</h1>
+
+    <input type="week" value="{{value}}" />
   `,
 })
 export class MyEasyElement extends EasyRenderElement {
-  name = 'Um'
   connectedCallback() {
-    this.name = 'Dois'
-    setTimeout(() => this.render(this), 2000)
+    this.bind({ text: '123' })
+    
+    wait(2)(() => {
+      const value = '2021-W40'
+
+      this.swap('text', value)
+      this.swap('value', value)
+    })
   }
 }
-
-const easyElement = document.querySelector('easy-element')

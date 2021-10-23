@@ -1,3 +1,4 @@
+import { TemplateBindings } from './template/bindings'
 import { concatValues } from './values'
 
 export function css(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -12,6 +13,13 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]) {
   return template
 }
 
+export function tmpl(strings: TemplateStringsArray, ...values: unknown[]) {
+  const template = document.createElement('template')
+  template.innerHTML = strings.join('')
+  return template
+}
+
 export abstract class EasyRenderElement extends HTMLElement {
-  render(params: any) { }
+  bind!: <T extends Record<string, any>>(data: T) => void
+  swap!: (name: string, value: any) => void
 }

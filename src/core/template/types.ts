@@ -1,0 +1,1 @@
+export type ElementProps = Element & { props: Record<string, any> }
