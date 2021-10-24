@@ -1,13 +1,15 @@
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { BehaviorSubject, Observable } from 'rxjs'
+import { EasyElement } from './render'
 
-export class EasyState<T> {
+export class EasyState<T> extends EasyElement {
   private state$: BehaviorSubject<T>
   protected get state(): T {
     return this.state$.getValue()
   }
 
   constructor(initialState: T) {
+    super()
     this.state$ = new BehaviorSubject<T>(initialState)
   }
 

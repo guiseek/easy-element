@@ -538,6 +538,16 @@
     __classPrivateFieldSet
   } = import_tslib.default;
 
+  // node_modules/rxjs/dist/esm5/internal/util/isArrayLike.js
+  var isArrayLike = function(x) {
+    return x && typeof x.length === "number" && typeof x !== "function";
+  };
+
+  // node_modules/rxjs/dist/esm5/internal/util/isPromise.js
+  function isPromise(value) {
+    return isFunction(value === null || value === void 0 ? void 0 : value.then);
+  }
+
   // node_modules/rxjs/dist/esm5/internal/util/createErrorClass.js
   function createErrorClass(createImpl) {
     var _super = function(instance) {
@@ -1039,6 +1049,225 @@
     return value && value instanceof Subscriber || isObserver(value) && isSubscription(value);
   }
 
+  // node_modules/rxjs/dist/esm5/internal/util/isInteropObservable.js
+  function isInteropObservable(input) {
+    return isFunction(input[observable]);
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/util/isAsyncIterable.js
+  function isAsyncIterable(obj) {
+    return Symbol.asyncIterator && isFunction(obj === null || obj === void 0 ? void 0 : obj[Symbol.asyncIterator]);
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/util/throwUnobservableError.js
+  function createInvalidObservableTypeError(input) {
+    return new TypeError("You provided " + (input !== null && typeof input === "object" ? "an invalid object" : "'" + input + "'") + " where a stream was expected. You can provide an Observable, Promise, ReadableStream, Array, AsyncIterable, or Iterable.");
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/symbol/iterator.js
+  function getSymbolIterator() {
+    if (typeof Symbol !== "function" || !Symbol.iterator) {
+      return "@@iterator";
+    }
+    return Symbol.iterator;
+  }
+  var iterator = getSymbolIterator();
+
+  // node_modules/rxjs/dist/esm5/internal/util/isIterable.js
+  function isIterable(input) {
+    return isFunction(input === null || input === void 0 ? void 0 : input[iterator]);
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/util/isReadableStreamLike.js
+  function readableStreamLikeToAsyncGenerator(readableStream) {
+    return __asyncGenerator(this, arguments, function readableStreamLikeToAsyncGenerator_1() {
+      var reader, _a, value, done;
+      return __generator(this, function(_b) {
+        switch (_b.label) {
+          case 0:
+            reader = readableStream.getReader();
+            _b.label = 1;
+          case 1:
+            _b.trys.push([1, , 9, 10]);
+            _b.label = 2;
+          case 2:
+            if (false)
+              return [3, 8];
+            return [4, __await(reader.read())];
+          case 3:
+            _a = _b.sent(), value = _a.value, done = _a.done;
+            if (!done)
+              return [3, 5];
+            return [4, __await(void 0)];
+          case 4:
+            return [2, _b.sent()];
+          case 5:
+            return [4, __await(value)];
+          case 6:
+            return [4, _b.sent()];
+          case 7:
+            _b.sent();
+            return [3, 2];
+          case 8:
+            return [3, 10];
+          case 9:
+            reader.releaseLock();
+            return [7];
+          case 10:
+            return [2];
+        }
+      });
+    });
+  }
+  function isReadableStreamLike(obj) {
+    return isFunction(obj === null || obj === void 0 ? void 0 : obj.getReader);
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/observable/innerFrom.js
+  function innerFrom(input) {
+    if (input instanceof Observable) {
+      return input;
+    }
+    if (input != null) {
+      if (isInteropObservable(input)) {
+        return fromInteropObservable(input);
+      }
+      if (isArrayLike(input)) {
+        return fromArrayLike(input);
+      }
+      if (isPromise(input)) {
+        return fromPromise(input);
+      }
+      if (isAsyncIterable(input)) {
+        return fromAsyncIterable(input);
+      }
+      if (isIterable(input)) {
+        return fromIterable(input);
+      }
+      if (isReadableStreamLike(input)) {
+        return fromReadableStreamLike(input);
+      }
+    }
+    throw createInvalidObservableTypeError(input);
+  }
+  function fromInteropObservable(obj) {
+    return new Observable(function(subscriber) {
+      var obs = obj[observable]();
+      if (isFunction(obs.subscribe)) {
+        return obs.subscribe(subscriber);
+      }
+      throw new TypeError("Provided object does not correctly implement Symbol.observable");
+    });
+  }
+  function fromArrayLike(array) {
+    return new Observable(function(subscriber) {
+      for (var i = 0; i < array.length && !subscriber.closed; i++) {
+        subscriber.next(array[i]);
+      }
+      subscriber.complete();
+    });
+  }
+  function fromPromise(promise) {
+    return new Observable(function(subscriber) {
+      promise.then(function(value) {
+        if (!subscriber.closed) {
+          subscriber.next(value);
+          subscriber.complete();
+        }
+      }, function(err) {
+        return subscriber.error(err);
+      }).then(null, reportUnhandledError);
+    });
+  }
+  function fromIterable(iterable) {
+    return new Observable(function(subscriber) {
+      var e_1, _a;
+      try {
+        for (var iterable_1 = __values(iterable), iterable_1_1 = iterable_1.next(); !iterable_1_1.done; iterable_1_1 = iterable_1.next()) {
+          var value = iterable_1_1.value;
+          subscriber.next(value);
+          if (subscriber.closed) {
+            return;
+          }
+        }
+      } catch (e_1_1) {
+        e_1 = {error: e_1_1};
+      } finally {
+        try {
+          if (iterable_1_1 && !iterable_1_1.done && (_a = iterable_1.return))
+            _a.call(iterable_1);
+        } finally {
+          if (e_1)
+            throw e_1.error;
+        }
+      }
+      subscriber.complete();
+    });
+  }
+  function fromAsyncIterable(asyncIterable) {
+    return new Observable(function(subscriber) {
+      process(asyncIterable, subscriber).catch(function(err) {
+        return subscriber.error(err);
+      });
+    });
+  }
+  function fromReadableStreamLike(readableStream) {
+    return fromAsyncIterable(readableStreamLikeToAsyncGenerator(readableStream));
+  }
+  function process(asyncIterable, subscriber) {
+    var asyncIterable_1, asyncIterable_1_1;
+    var e_2, _a;
+    return __awaiter(this, void 0, void 0, function() {
+      var value, e_2_1;
+      return __generator(this, function(_b) {
+        switch (_b.label) {
+          case 0:
+            _b.trys.push([0, 5, 6, 11]);
+            asyncIterable_1 = __asyncValues(asyncIterable);
+            _b.label = 1;
+          case 1:
+            return [4, asyncIterable_1.next()];
+          case 2:
+            if (!(asyncIterable_1_1 = _b.sent(), !asyncIterable_1_1.done))
+              return [3, 4];
+            value = asyncIterable_1_1.value;
+            subscriber.next(value);
+            if (subscriber.closed) {
+              return [2];
+            }
+            _b.label = 3;
+          case 3:
+            return [3, 1];
+          case 4:
+            return [3, 11];
+          case 5:
+            e_2_1 = _b.sent();
+            e_2 = {error: e_2_1};
+            return [3, 11];
+          case 6:
+            _b.trys.push([6, , 9, 10]);
+            if (!(asyncIterable_1_1 && !asyncIterable_1_1.done && (_a = asyncIterable_1.return)))
+              return [3, 8];
+            return [4, _a.call(asyncIterable_1)];
+          case 7:
+            _b.sent();
+            _b.label = 8;
+          case 8:
+            return [3, 10];
+          case 9:
+            if (e_2)
+              throw e_2.error;
+            return [7];
+          case 10:
+            return [7];
+          case 11:
+            subscriber.complete();
+            return [2];
+        }
+      });
+    });
+  }
+
   // node_modules/rxjs/dist/esm5/internal/operators/OperatorSubscriber.js
   var OperatorSubscriber = function(_super) {
     __extends(OperatorSubscriber2, _super);
@@ -1304,12 +1533,23 @@
     return BehaviorSubject2;
   }(Subject);
 
+  // node_modules/rxjs/dist/esm5/internal/operators/takeUntil.js
+  function takeUntil(notifier) {
+    return operate(function(source, subscriber) {
+      innerFrom(notifier).subscribe(new OperatorSubscriber(subscriber, function() {
+        return subscriber.complete();
+      }, noop));
+      !subscriber.closed && source.subscribe(subscriber);
+    });
+  }
+
   // src/state.ts
-  var EasyState = class {
+  var EasyState = class extends EasyElement {
     get state() {
       return this.state$.getValue();
     }
     constructor(initialState) {
+      super();
       this.state$ = new BehaviorSubject(initialState);
     }
     select(mapFn) {
@@ -1588,7 +1828,7 @@
   };
 
   // example/form.ts
-  var MyEasyState = class extends EasyState {
+  var MyEasyFormElement = class extends EasyState {
     constructor() {
       super({name: null, email: null});
       this.name$ = this.select((user) => user.name ?? "");
@@ -1599,12 +1839,6 @@
     }
     setEmail(email) {
       this.setState({email});
-    }
-  };
-  var MyEasyFormElement = class extends EasyElement {
-    constructor() {
-      super(...arguments);
-      this.state = new MyEasyState();
     }
     connectedCallback() {
       const title = "Usu\xE1rio";
@@ -1620,16 +1854,16 @@
       const p = this.queryProps("p");
       if (p)
         console.log(p.props);
-      this.state.name$.subscribe((name) => {
+      this.name$.subscribe((name) => {
         this.swap("name", name);
       });
-      this.state.email$.subscribe((email) => {
+      this.email$.subscribe((email) => {
         this.swap("email", email);
       });
       wait(2)(() => {
-        this.state.setName("Guilherme");
+        this.setName("Guilherme");
         wait(2)(() => {
-          this.state.setEmail("guiseek@email.com");
+          this.setEmail("guiseek@email.com");
         });
       });
     }
@@ -1662,28 +1896,19 @@
   ], MyEasyFormElement);
 
   // example/counter.ts
-  var MyEasyState2 = class extends EasyState {
-    constructor(initial) {
-      super(initial);
+  var MyEasyCounterElement = class extends EasyState {
+    constructor() {
+      super({
+        min: 0,
+        step: 10,
+        max: 100,
+        current: 0
+      });
+      this._destroy = new Subject();
       this.current$ = this.select(({current}) => current);
       this.step$ = this.select(({step}) => step);
       this.min$ = this.select(({min}) => min);
       this.max$ = this.select(({max}) => max);
-    }
-    setUp(value) {
-      this.setState(value);
-    }
-    setMin(min) {
-      this.setState({min});
-    }
-    setMax(max) {
-      this.setState({max});
-    }
-    setStep(step) {
-      this.setState({step});
-    }
-    setCurrent(current) {
-      this.setState({current});
     }
     inc(value) {
       const inc = value ?? this.state.step;
@@ -1699,30 +1924,27 @@
         this.setState({current: val});
       }
     }
-  };
-  var MyEasyCounterElement = class extends EasyElement {
     connectedCallback() {
       const title = "Contador";
-      const min = 0;
-      const step = 10;
-      const max = 100;
-      const current = 0;
-      this.state = new MyEasyState2({min, step, max, current});
-      const dec = () => this.state.dec();
-      const inc = () => this.state.inc();
-      this.bind({title, min, step, max, current, dec, inc});
-      this.state.min$.subscribe((min2) => {
-        this.swap("min", min2);
+      const dec = () => this.dec();
+      const inc = () => this.inc();
+      this.bind({title, dec, inc});
+      this.min$.pipe(takeUntil(this._destroy)).subscribe((min) => {
+        this.swap("min", min);
       });
-      this.state.max$.subscribe((max2) => {
-        this.swap("max", max2);
+      this.max$.pipe(takeUntil(this._destroy)).subscribe((max) => {
+        this.swap("max", max);
       });
-      this.state.step$.subscribe((step2) => {
-        this.swap("step", step2);
+      this.step$.pipe(takeUntil(this._destroy)).subscribe((step) => {
+        this.swap("step", step);
       });
-      this.state.current$.subscribe((current2) => {
-        this.swap("current", current2);
+      this.current$.pipe(takeUntil(this._destroy)).subscribe((current) => {
+        this.swap("current", current);
       });
+    }
+    disconnectedCallback() {
+      this._destroy.next();
+      this._destroy.complete();
     }
   };
   MyEasyCounterElement = __decorate([

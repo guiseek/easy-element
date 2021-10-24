@@ -10,33 +10,6 @@ interface Counter {
   max: number
 }
 
-export class MyEasyState extends EasyState<Counter> {
-  current$ = this.select(({ current }) => current)
-  step$ = this.select(({ step }) => step)
-  min$ = this.select(({ min }) => min)
-  max$ = this.select(({ max }) => max)
-  
-  constructor(initial: Counter) {
-    super(initial)
-  }
-
-  inc(value?: number) {
-    const inc = value ?? this.state.step
-    const val = this.state.current + inc
-    if (val <= this.state.max) {
-      this.setState({ current: val })
-    }
-  }
-  
-  dec(value?: number) {
-    const dec = value ?? this.state.step
-    const val = this.state.current - dec
-    if (val >= this.state.min) {
-      this.setState({ current: val })
-    }
-  }
-}
-
 @Easy({
   mode: 'open',
   name: 'easy-counter',
@@ -58,53 +31,78 @@ export class MyEasyState extends EasyState<Counter> {
   </fieldset>
   `,
 })
-export class MyEasyCounterElement extends EasyElement {
+export class MyEasyCounterElement extends EasyState<Counter> {
   private _destroy = new  Subject<void>()
 
-  state!: MyEasyState
+  current$ = this.select(({ current }) => current)
+  step$ = this.select(({ step }) => step)
+  min$ = this.select(({ min }) => min)
+  max$ = this.select(({ max }) => max)
+
+  constructor() {
+    super({
+      min: 0,
+      step: 10,
+      max: 100,
+      current: 0
+    })
+  }
+
+  inc(value?: number) {
+    const inc = value ?? this.state.step
+    const val = this.state.current + inc
+    if (val <= this.state.max) {
+      this.setState({ current: val })
+    }
+  }
+  
+  dec(value?: number) {
+    const dec = value ?? this.state.step
+    const val = this.state.current - dec
+    if (val >= this.state.min) {
+      this.setState({ current: val })
+    }
+  }
 
   connectedCallback() {
     // Legend
     const title = 'Contador'
     
-    const min = 0
-    const step = 10
-    const max = 100
-    const current = 0
-
-    this.state = new MyEasyState({ min, step, max, current })
-
-    const dec = () => this.state.dec()
-    const inc = () => this.state.inc()
+    const dec = () => this.dec()
+    const inc = () => this.inc()
 
     // Bind Template
-    this.bind({ title, min, step, max, current, dec, inc })
+    this.bind({ title, dec, inc })
 
     // State select
-    this.state.min$.pipe(
+    this.min$.pipe(
       takeUntil(this._destroy)
     ).subscribe((min) => {
+      console.log('min', min)
       this.swap('min', min)
     })
     
     // State select
-    this.state.max$.pipe(
+    this.max$.pipe(
       takeUntil(this._destroy)
     ).subscribe((max) => {
+      console.log('max', max)
       this.swap('max', max)
     })
     
     // State select
-    this.state.step$.pipe(
+    this.step$.pipe(
       takeUntil(this._destroy)
     ).subscribe((step) => {
+      console.log('step', step)
       this.swap('step', step)
     })
     
     // State select
-    this.state.current$.pipe(
+    this.current$.pipe(
       takeUntil(this._destroy)
     ).subscribe((current) => {
+      console.log('current', current)
       this.swap('current', current)
     })
   }

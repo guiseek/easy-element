@@ -10,23 +10,6 @@ interface User {
   email: string | null
 }
 
-export class MyEasyState extends EasyState<User> {
-  name$ = this.select((user) => user.name ?? '')
-  email$ = this.select((user) => user.email ?? '')
-
-  constructor() {
-    super({ name: null, email: null })
-  }
-
-  setName(name: string) {
-    this.setState({ name })
-  }
-
-  setEmail(email: string) {
-    this.setState({ email })
-  }
-}
-
 @Easy({
   mode: 'open',
   name: 'easy-form',
@@ -51,8 +34,21 @@ export class MyEasyState extends EasyState<User> {
   </fieldset>
   `,
 })
-export class MyEasyFormElement extends EasyElement {
-  state = new MyEasyState()
+export class MyEasyFormElement extends EasyState<User> {
+  name$ = this.select((user) => user.name ?? '')
+  email$ = this.select((user) => user.email ?? '')
+
+  constructor() {
+    super({ name: null, email: null })
+  }
+
+  setName(name: string) {
+    this.setState({ name })
+  }
+
+  setEmail(email: string) {
+    this.setState({ email })
+  }
 
   connectedCallback() {
     // Legend
@@ -80,23 +76,23 @@ export class MyEasyFormElement extends EasyElement {
     if (p) console.log(p.props)
 
     // State select
-    this.state.name$.subscribe((name) => {
+    this.name$.subscribe((name) => {
       this.swap('name', name)
     })
     
     // State select
-    this.state.email$.subscribe((email) => {
+    this.email$.subscribe((email) => {
       this.swap('email', email)
     })
     
     // Wait in seconds
     wait(2)(() => {
       // State set
-      this.state.setName('Guilherme')
+      this.setName('Guilherme')
       
       wait(2)(() => {
         // State set
-        this.state.setEmail('guiseek@email.com')
+        this.setEmail('guiseek@email.com')
       })
     })
   }
