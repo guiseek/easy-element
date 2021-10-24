@@ -1,8 +1,7 @@
-import { ElementProps } from './core/template/types'
-import { EasyElement, tmpl } from './core/render'
-import { EasyState } from './core/state'
-import { Easy } from './core/easy'
-import { wait } from './core/wait'
+import { EasyElement, tmpl } from '../src/render'
+import { EasyState } from '../src/state'
+import { Easy } from '../src/easy'
+import { wait } from '../src/wait'
 
 import './style.css'
 
@@ -30,7 +29,7 @@ export class MyEasyState extends EasyState<User> {
 
 @Easy({
   mode: 'open',
-  name: 'easy-element',
+  name: 'easy-form',
   tmpl: tmpl`
   <fieldset>
     <legend> {{title}} </legend>
@@ -52,7 +51,7 @@ export class MyEasyState extends EasyState<User> {
   </fieldset>
   `,
 })
-export class MyEasyElement extends EasyElement {
+export class MyEasyFormElement extends EasyElement {
   state = new MyEasyState()
 
   connectedCallback() {

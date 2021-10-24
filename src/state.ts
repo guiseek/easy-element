@@ -1,8 +1,6 @@
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { BehaviorSubject, Observable } from 'rxjs'
-import { Injectable } from './di/decorators'
 
-@Injectable()
 export class EasyState<T> {
   private state$: BehaviorSubject<T>
   protected get state(): T {

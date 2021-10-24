@@ -5,7 +5,7 @@ import esbuildServe from "esbuild-serve";
 esbuildServe(
   {
     logLevel: "info",
-    entryPoints: ["src/main.ts"],
+    entryPoints: ["example/main.ts"],
     bundle: true,
     outfile: "docs/main.js",
     sourcemap: true,
