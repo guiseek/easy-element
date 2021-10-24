@@ -19,7 +19,7 @@ export function tmpl(strings: TemplateStringsArray, ...values: unknown[]) {
   return template
 }
 
-export abstract class EasyRenderElement extends HTMLElement {
+export abstract class EasyElement extends HTMLElement {
   bind!: <T extends Record<string, any>>(data: T) => void
   swap!: (name: string, value: any) => void
 }

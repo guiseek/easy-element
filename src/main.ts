@@ -1,27 +1,71 @@
-import { EasyRenderElement, tmpl } from './core/render'
+import { EasyElement, tmpl } from './core/render'
+import { EasyState } from './core/state'
 import { Easy } from './core/easy'
 import { wait } from './core/wait'
 
 import './style.css'
 
+interface User {
+  name: string | null
+  email: string | null
+}
+
+export class MyEasyState extends EasyState<User> {
+  name$ = this.select((user) => user.name ?? '')
+  email$ = this.select((user) => user.email ?? '')
+
+  constructor() {
+    super({ name: null, email: null })
+  }
+
+  setName(name: string) {
+    this.setState({ name })
+  }
+
+  setEmail(email: string) {
+    this.setState({ email })
+  }
+}
+
 @Easy({
   mode: 'open',
   name: 'easy-element',
   tmpl: tmpl`
-    <h1>Text {{text}}</h1>
-
-    <input type="week" value="{{value}}" />
+  <fieldset>
+    <legend> {{title}} </legend>
+    <form>
+      <label>
+        <span>Nome</span>
+        <input type="text" name="name" value="{{name}}" />
+      </label>
+      <label>
+        <span>Email</span>
+        <input type="email" name="email" value="{{email}}" />
+      </label>
+    </form>
+  </fieldset>
   `,
 })
-export class MyEasyElement extends EasyRenderElement {
-  connectedCallback() {
-    this.bind({ text: '123' })
-    
-    wait(2)(() => {
-      const value = '2021-W40'
+export class MyEasyElement extends EasyElement {
+  state = new MyEasyState()
 
-      this.swap('text', value)
-      this.swap('value', value)
+  connectedCallback() {
+    this.bind({ title: 'Usuário' })
+
+    this.state.name$.subscribe((name) => {
+      this.swap('name', name)
+    })
+
+    this.state.email$.subscribe((email) => {
+      this.swap('email', email)
+    })
+
+    wait(2)(() => {
+      this.state.setName('Guilherme')
+
+      wait(2)(() => {
+        this.state.setEmail('guiseek@email.com')
+      })
     })
   }
 }

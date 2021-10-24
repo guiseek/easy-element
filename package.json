@@ -16,5 +16,9 @@
     "esbuild": "^0.13.8",
     "esbuild-serve": "^1.0.1",
     "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.4.0"
   }
 }
