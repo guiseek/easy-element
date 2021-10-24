@@ -473,6 +473,13 @@
     return template;
   }
   var EasyElement = class extends HTMLElement {
+    getFormValue(form) {
+      const data = new FormData(form);
+      return Object.fromEntries(data.entries());
+    }
+    queryProps(selector) {
+      return this.shadowRoot?.querySelector(selector);
+    }
     query(selector) {
       return this.shadowRoot?.querySelector(selector);
     }
@@ -2353,9 +2360,17 @@
       this.state = new MyEasyState();
     }
     connectedCallback() {
+      const title = "Usu\xE1rio";
       const value = {key: "value"};
-      this.bind({title: "Usu\xE1rio", value});
-      const p = this.query("p");
+      const form = this.query("form");
+      const handler = (event) => {
+        if (form) {
+          console.log(event);
+          console.log(this.getFormValue(form));
+        }
+      };
+      this.bind({title, value, handler});
+      const p = this.queryProps("p");
       if (p)
         console.log(p.props);
       this.state.name$.subscribe((name) => {
@@ -2391,6 +2406,8 @@
         <span>Email</span>
         <input type="email" name="email" value="{{email}}" />
       </label>
+
+      <button type="button" on-click={{handler}}>Salvar</button>
     </form>
   </fieldset>
   `

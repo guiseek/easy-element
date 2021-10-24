@@ -46,6 +46,8 @@ export class MyEasyState extends EasyState<User> {
         <span>Email</span>
         <input type="email" name="email" value="{{email}}" />
       </label>
+
+      <button type="button" on-click={{handler}}>Salvar</button>
     </form>
   </fieldset>
   `,
@@ -54,24 +56,47 @@ export class MyEasyElement extends EasyElement {
   state = new MyEasyState()
 
   connectedCallback() {
-    const value = { key: 'value' }
-    this.bind({ title: 'Usuário', value })
+    // Legend
+    const title = 'Usuário'
 
-    const p = this.query('p')
+    // Prop value
+    const value = { key: 'value' }
+
+    // Query selector
+    const form = this.query('form')
+
+    // On click
+    const handler = (event: PointerEvent) => {
+      if (form) {
+        console.log(event)
+        console.log(this.getFormValue(form))
+      }
+    }
+
+    // Bind Template
+    this.bind({ title, value, handler })
+
+    // Query selector with props
+    const p = this.queryProps('p')
     if (p) console.log(p.props)
 
+    // State select
     this.state.name$.subscribe((name) => {
       this.swap('name', name)
     })
-
+    
+    // State select
     this.state.email$.subscribe((email) => {
       this.swap('email', email)
     })
-
+    
+    // Wait in seconds
     wait(2)(() => {
+      // State set
       this.state.setName('Guilherme')
-
+      
       wait(2)(() => {
+        // State set
         this.state.setEmail('guiseek@email.com')
       })
     })

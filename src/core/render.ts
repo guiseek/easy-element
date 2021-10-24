@@ -23,9 +23,17 @@ export abstract class EasyElement extends HTMLElement {
   bind!: <T extends Record<string, any>>(data: T) => void
   swap!: (name: string, value: any) => void
 
+  getFormValue(form: HTMLFormElement) {
+    const data = new FormData(form)
+    return Object.fromEntries(data.entries())
+  }
 
-  query<K extends keyof HTMLElementTagNameMap>(selector: K) {
+  queryProps<K extends keyof HTMLElementTagNameMap>(selector: K) {
     type SelectElement = ElementProps<HTMLElementTagNameMap[K]>
     return this.shadowRoot?.querySelector<SelectElement>(selector)
+  }
+  
+  query<K extends keyof HTMLElementTagNameMap>(selector: K) {
+    return this.shadowRoot?.querySelector(selector)
   }
 }
