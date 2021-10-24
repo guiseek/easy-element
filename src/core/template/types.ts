@@ -1,1 +1,1 @@
-export type ElementProps = Element & { props: Record<string, any> }
+export type ElementProps<T = Element> = T & { props: Record<string, any> }

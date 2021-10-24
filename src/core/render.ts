@@ -1,4 +1,4 @@
-import { TemplateBindings } from './template/bindings'
+import { ElementProps } from './template/types'
 import { concatValues } from './values'
 
 export function css(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -22,4 +22,10 @@ export function tmpl(strings: TemplateStringsArray, ...values: unknown[]) {
 export abstract class EasyElement extends HTMLElement {
   bind!: <T extends Record<string, any>>(data: T) => void
   swap!: (name: string, value: any) => void
+
+
+  query<K extends keyof HTMLElementTagNameMap>(selector: K) {
+    type SelectElement = ElementProps<HTMLElementTagNameMap[K]>
+    return this.shadowRoot?.querySelector<SelectElement>(selector)
+  }
 }

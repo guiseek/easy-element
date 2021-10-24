@@ -1,3 +1,4 @@
+import { ElementProps } from './core/template/types'
 import { EasyElement, tmpl } from './core/render'
 import { EasyState } from './core/state'
 import { Easy } from './core/easy'
@@ -33,6 +34,9 @@ export class MyEasyState extends EasyState<User> {
   tmpl: tmpl`
   <fieldset>
     <legend> {{title}} </legend>
+    
+    <p easy-prop$="{{value}}"></p>
+    
     <form>
       <label>
         <span>Nome</span>
@@ -50,7 +54,11 @@ export class MyEasyElement extends EasyElement {
   state = new MyEasyState()
 
   connectedCallback() {
-    this.bind({ title: 'Usuário' })
+    const value = { key: 'value' }
+    this.bind({ title: 'Usuário', value })
+
+    const p = this.query('p')
+    if (p) console.log(p.props)
 
     this.state.name$.subscribe((name) => {
       this.swap('name', name)
