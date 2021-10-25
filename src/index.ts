@@ -6,3 +6,4 @@ export * from './state';
 export * from './task';
 export * from './values';
 export * from './wait';
+export * from './loop';

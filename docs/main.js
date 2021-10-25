@@ -1827,6 +1827,13 @@
     };
   };
 
+  // src/loop.ts
+  var loop = (time) => {
+    return (fn) => {
+      setInterval(fn, time * 1e3);
+    };
+  };
+
   // example/form.ts
   var MyEasyFormElement = class extends EasyState {
     constructor() {
@@ -1888,6 +1895,28 @@
   `
     })
   ], MyEasyFormElement);
+
+  // example/clock.ts
+  var MyEasyClockElement = class extends EasyElement {
+    connectedCallback() {
+      this.swapDateTime();
+      loop(1)(() => this.swapDateTime());
+    }
+    swapDateTime() {
+      const date = new Date();
+      this.swap("date", date.toLocaleDateString());
+      this.swap("time", date.toLocaleTimeString());
+    }
+  };
+  MyEasyClockElement = __decorate([
+    Easy({
+      mode: "open",
+      name: "easy-clock",
+      tmpl: tmpl`
+    <h3>{{date}} - {{time}}</h3>
+  `
+    })
+  ], MyEasyClockElement);
 
   // example/counter.ts
   var MyEasyCounterElement = class extends EasyState {
