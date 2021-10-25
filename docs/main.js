@@ -485,6 +485,263 @@
     }
   };
 
+  // src/template/bindings.ts
+  function isBoundEventHandlerNode(node) {
+    return node.hasOwnProperty("eventName");
+  }
+  function isBoundPropertyNode(node) {
+    return node.hasOwnProperty("propName");
+  }
+  var TemplateBindings = class {
+    constructor(bindingsMap) {
+      this._map = bindingsMap;
+    }
+    setData(data) {
+      Object.keys(data).forEach((key) => this.set(key, data[key]));
+    }
+    set(name, value) {
+      const boundNodes = this._map.get(name);
+      if (boundNodes) {
+        for (let boundNode of boundNodes) {
+          const {node} = boundNode;
+          if (node.nodeType === Node.TEXT_NODE) {
+            node.textContent = value.toString();
+          } else if (isBoundEventHandlerNode(boundNode)) {
+            const {eventHandler, eventName} = boundNode;
+            node.removeEventListener(eventName, eventHandler);
+            node.addEventListener(eventName, value);
+            boundNode.eventHandler = value;
+          } else if (isBoundPropertyNode(boundNode)) {
+            ;
+            node.props[boundNode.propName] = value;
+          } else {
+            const {values, originalValue} = boundNode;
+            values.set(name, value.toString());
+            let attrValue = originalValue;
+            if (values) {
+              values.forEach((value2, name2) => {
+                attrValue = attrValue.replace(`{{${name2}}}`, value2);
+              });
+            }
+            ;
+            node.value = attrValue;
+          }
+        }
+      }
+    }
+  };
+
+  // src/template/factory.ts
+  var TemplateBindingsFactory = class {
+    constructor() {
+      this._textBindings = [
+        {
+          name: "",
+          path: []
+        }
+      ];
+      this._attributeBindings = [];
+      this._textBindings = [];
+      this._attributeBindings = [];
+    }
+    addTextBinding(name, path) {
+      this._textBindings.push({name, path: path.slice()});
+    }
+    addAttributeBinding(names, attrName, path) {
+      const eventName = (attrName.startsWith("on-") ? attrName.substr(3) : "").replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      const isProperty = attrName.endsWith("$");
+      this._attributeBindings.push({
+        names,
+        attrName,
+        eventName,
+        isProperty,
+        path: path.slice()
+      });
+    }
+    applyTo(node) {
+      const bindingsMap = new Map([]);
+      for (let {name = "", path = []} of this._textBindings) {
+        const nodeToBind = this.findNodeFromPath(node, path);
+        nodeToBind.textContent = "";
+        if (!bindingsMap.has(name)) {
+          bindingsMap.set(name, []);
+        }
+        bindingsMap.get(name)?.push({
+          node: nodeToBind
+        });
+      }
+      for (let binding of this._attributeBindings) {
+        const {names, attrName, path, eventName, isProperty} = binding;
+        const nodeToBind = this.findNodeFromPath(node, path);
+        const attrNode = nodeToBind.getAttributeNode(attrName);
+        if (eventName && attrNode) {
+          const ownerElement = attrNode.ownerElement;
+          const binding2 = {
+            node: ownerElement,
+            eventName,
+            eventHandler: null
+          };
+          ownerElement.removeAttribute(attrNode.name);
+          if (!bindingsMap.has(names[0])) {
+            bindingsMap.set(names[0], []);
+          }
+          bindingsMap.get(names[0])?.push(binding2);
+        } else if (isProperty) {
+          const ownerElement = attrNode.ownerElement;
+          const propName = attrNode.name.slice(0, -1).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          const binding2 = {
+            node: ownerElement,
+            propName
+          };
+          ownerElement.props = ownerElement.props || {};
+          ownerElement.props[propName] = null;
+          ownerElement.removeAttribute(attrNode.name);
+          if (!bindingsMap.has(names[0])) {
+            bindingsMap.set(names[0], []);
+          }
+          bindingsMap.get(names[0])?.push(binding2);
+        } else {
+          const binding2 = {
+            node: attrNode,
+            originalValue: attrNode.value,
+            values: new Map()
+          };
+          for (let name of names) {
+            if (!bindingsMap.has(name)) {
+              bindingsMap.set(name, []);
+            }
+            binding2.values.set(name, "");
+            bindingsMap.get(name)?.push(binding2);
+          }
+          let attrValue = binding2.originalValue;
+          binding2.values.forEach((value, name) => {
+            attrValue = attrValue.replace(`{{${name}}}`, value);
+          });
+          attrNode.value = attrValue;
+        }
+      }
+      return new TemplateBindings(bindingsMap);
+    }
+    findNodeFromPath(node, path) {
+      let result = node;
+      for (let pathSegment of path) {
+        result = result.childNodes[pathSegment];
+      }
+      return result;
+    }
+  };
+
+  // src/template/parser.ts
+  var TemplateBindingsParser = class {
+    static parse(template) {
+      const bindings = new TemplateBindingsFactory();
+      this.parseNodes(bindings, template.content.childNodes, []);
+      return bindings;
+    }
+    static parseNodes(bindings, nodes, path) {
+      for (let i = 0; i < nodes.length; i++) {
+        path.push(i);
+        this.parseNode(bindings, nodes[i], path);
+        path.pop();
+      }
+    }
+    static parseNode(bindings, node, path) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return this.parseTextBindings(bindings, node, path);
+      }
+      if (node instanceof Element) {
+        if (node.hasAttributes()) {
+          this.parseAttributes(bindings, node.attributes, path);
+        }
+        if (node.hasChildNodes()) {
+          this.parseNodes(bindings, node.childNodes, path);
+        }
+      }
+    }
+    static parseAttributes(bindings, attributes, path) {
+      for (let i = 0; i < attributes.length; i++) {
+        this.parseAttribute(bindings, attributes[i], path);
+      }
+    }
+    static parseAttribute(bindings, attribute, path) {
+      const regex = new RegExp(this.BINDING_REGEX.source, "g");
+      const names = [];
+      let match = regex.exec(attribute.value);
+      while (match) {
+        names.push(match[1]);
+        match = regex.exec(attribute.value);
+      }
+      if (names.length) {
+        bindings.addAttributeBinding(names, attribute.name, path);
+      }
+    }
+    static parseTextBindings(bindings, node, path) {
+      const regex = new RegExp(this.BINDING_REGEX.source, "g");
+      const match = regex.exec(`${node.textContent}`);
+      if (match) {
+        if (match.index) {
+          node.splitText(match.index);
+          return;
+        }
+        if (node.length > match[0].length) {
+          node.splitText(match[0].length);
+        }
+        const name = match[1];
+        bindings.addTextBinding(name, path);
+      }
+    }
+  };
+  TemplateBindingsParser.BINDING_REGEX = /{{([a-zA-z0-9]*)}}/;
+
+  // src/template/bound.ts
+  var BoundTemplate = class {
+    constructor(template) {
+      this._bindingsFactory = null;
+      this._template = template;
+    }
+    create(data) {
+      if (!this._bindingsFactory) {
+        this._bindingsFactory = TemplateBindingsParser.parse(this._template);
+      }
+      const instance = this._template.content.cloneNode(true);
+      const bindings = this._bindingsFactory.applyTo(instance);
+      if (data) {
+        bindings.setData(data);
+      }
+      return [instance, bindings];
+    }
+  };
+  var bound_default = BoundTemplate;
+
+  // src/noop.ts
+  var noop = () => null;
+
+  // src/easy.ts
+  function Easy(options) {
+    const {name, tmpl: tmpl2, style, mode} = options;
+    return function(target) {
+      const connected = target.prototype.connectedCallback ?? noop;
+      target.prototype.connectedCallback = function() {
+        const shadow = this.attachShadow({mode});
+        if (style)
+          shadow.appendChild(style);
+        if (tmpl2) {
+          const bound = new bound_default(tmpl2);
+          const [instance, bindings] = bound.create(this);
+          target.prototype.bind = (data) => {
+            bindings.setData(data);
+          };
+          target.prototype.swap = (name2, value) => {
+            bindings.set(name2, value);
+          };
+          shadow.appendChild(instance);
+        }
+        connected.call(this);
+      };
+      customElements.define(name, target);
+    };
+  }
+
   // node_modules/rxjs/dist/esm5/internal/util/isFunction.js
   function isFunction(value) {
     return typeof value === "function";
@@ -756,7 +1013,7 @@
   }
 
   // node_modules/rxjs/dist/esm5/internal/util/noop.js
-  function noop() {
+  function noop2() {
   }
 
   // node_modules/rxjs/dist/esm5/internal/NotificationFactories.js
@@ -895,9 +1152,9 @@
         complete = complete === null || complete === void 0 ? void 0 : complete.bind(context_1);
       }
       _this.destination = {
-        next: next ? wrapForErrorHandling(next, _this) : noop,
+        next: next ? wrapForErrorHandling(next, _this) : noop2,
         error: wrapForErrorHandling(error !== null && error !== void 0 ? error : defaultErrorHandler, _this),
-        complete: complete ? wrapForErrorHandling(complete, _this) : noop
+        complete: complete ? wrapForErrorHandling(complete, _this) : noop2
       };
       return _this;
     }
@@ -931,9 +1188,9 @@
   }
   var EMPTY_OBSERVER = {
     closed: true,
-    next: noop,
+    next: noop2,
     error: defaultErrorHandler,
-    complete: noop
+    complete: noop2
   };
 
   // node_modules/rxjs/dist/esm5/internal/symbol/observable.js
@@ -1538,7 +1795,7 @@
     return operate(function(source, subscriber) {
       innerFrom(notifier).subscribe(new OperatorSubscriber(subscriber, function() {
         return subscriber.complete();
-      }, noop));
+      }, noop2));
       !subscriber.closed && source.subscribe(subscriber);
     });
   }
@@ -1563,263 +1820,6 @@
     }
   };
 
-  // src/template/bindings.ts
-  function isBoundEventHandlerNode(node) {
-    return node.hasOwnProperty("eventName");
-  }
-  function isBoundPropertyNode(node) {
-    return node.hasOwnProperty("propName");
-  }
-  var TemplateBindings = class {
-    constructor(bindingsMap) {
-      this._map = bindingsMap;
-    }
-    setData(data) {
-      Object.keys(data).forEach((key) => this.set(key, data[key]));
-    }
-    set(name, value) {
-      const boundNodes = this._map.get(name);
-      if (boundNodes) {
-        for (let boundNode of boundNodes) {
-          const {node} = boundNode;
-          if (node.nodeType === Node.TEXT_NODE) {
-            node.textContent = value.toString();
-          } else if (isBoundEventHandlerNode(boundNode)) {
-            const {eventHandler, eventName} = boundNode;
-            node.removeEventListener(eventName, eventHandler);
-            node.addEventListener(eventName, value);
-            boundNode.eventHandler = value;
-          } else if (isBoundPropertyNode(boundNode)) {
-            ;
-            node.props[boundNode.propName] = value;
-          } else {
-            const {values, originalValue} = boundNode;
-            values.set(name, value.toString());
-            let attrValue = originalValue;
-            if (values) {
-              values.forEach((value2, name2) => {
-                attrValue = attrValue.replace(`{{${name2}}}`, value2);
-              });
-            }
-            ;
-            node.value = attrValue;
-          }
-        }
-      }
-    }
-  };
-
-  // src/template/factory.ts
-  var TemplateBindingsFactory = class {
-    constructor() {
-      this._textBindings = [
-        {
-          name: "",
-          path: []
-        }
-      ];
-      this._attributeBindings = [];
-      this._textBindings = [];
-      this._attributeBindings = [];
-    }
-    addTextBinding(name, path) {
-      this._textBindings.push({name, path: path.slice()});
-    }
-    addAttributeBinding(names, attrName, path) {
-      const eventName = (attrName.startsWith("on-") ? attrName.substr(3) : "").replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-      const isProperty = attrName.endsWith("$");
-      this._attributeBindings.push({
-        names,
-        attrName,
-        eventName,
-        isProperty,
-        path: path.slice()
-      });
-    }
-    applyTo(node) {
-      const bindingsMap = new Map([]);
-      for (let {name = "", path = []} of this._textBindings) {
-        const nodeToBind = this.findNodeFromPath(node, path);
-        nodeToBind.textContent = "";
-        if (!bindingsMap.has(name)) {
-          bindingsMap.set(name, []);
-        }
-        bindingsMap.get(name)?.push({
-          node: nodeToBind
-        });
-      }
-      for (let binding of this._attributeBindings) {
-        const {names, attrName, path, eventName, isProperty} = binding;
-        const nodeToBind = this.findNodeFromPath(node, path);
-        const attrNode = nodeToBind.getAttributeNode(attrName);
-        if (eventName && attrNode) {
-          const ownerElement = attrNode.ownerElement;
-          const binding2 = {
-            node: ownerElement,
-            eventName,
-            eventHandler: null
-          };
-          ownerElement.removeAttribute(attrNode.name);
-          if (!bindingsMap.has(names[0])) {
-            bindingsMap.set(names[0], []);
-          }
-          bindingsMap.get(names[0])?.push(binding2);
-        } else if (isProperty) {
-          const ownerElement = attrNode.ownerElement;
-          const propName = attrNode.name.slice(0, -1).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          const binding2 = {
-            node: ownerElement,
-            propName
-          };
-          ownerElement.props = ownerElement.props || {};
-          ownerElement.props[propName] = null;
-          ownerElement.removeAttribute(attrNode.name);
-          if (!bindingsMap.has(names[0])) {
-            bindingsMap.set(names[0], []);
-          }
-          bindingsMap.get(names[0])?.push(binding2);
-        } else {
-          const binding2 = {
-            node: attrNode,
-            originalValue: attrNode.value,
-            values: new Map()
-          };
-          for (let name of names) {
-            if (!bindingsMap.has(name)) {
-              bindingsMap.set(name, []);
-            }
-            binding2.values.set(name, "");
-            bindingsMap.get(name)?.push(binding2);
-          }
-          let attrValue = binding2.originalValue;
-          binding2.values.forEach((value, name) => {
-            attrValue = attrValue.replace(`{{${name}}}`, value);
-          });
-          attrNode.value = attrValue;
-        }
-      }
-      return new TemplateBindings(bindingsMap);
-    }
-    findNodeFromPath(node, path) {
-      let result = node;
-      for (let pathSegment of path) {
-        result = result.childNodes[pathSegment];
-      }
-      return result;
-    }
-  };
-
-  // src/template/parser.ts
-  var TemplateBindingsParser = class {
-    static parse(template) {
-      const bindings = new TemplateBindingsFactory();
-      this.parseNodes(bindings, template.content.childNodes, []);
-      return bindings;
-    }
-    static parseNodes(bindings, nodes, path) {
-      for (let i = 0; i < nodes.length; i++) {
-        path.push(i);
-        this.parseNode(bindings, nodes[i], path);
-        path.pop();
-      }
-    }
-    static parseNode(bindings, node, path) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        return this.parseTextBindings(bindings, node, path);
-      }
-      if (node instanceof Element) {
-        if (node.hasAttributes()) {
-          this.parseAttributes(bindings, node.attributes, path);
-        }
-        if (node.hasChildNodes()) {
-          this.parseNodes(bindings, node.childNodes, path);
-        }
-      }
-    }
-    static parseAttributes(bindings, attributes, path) {
-      for (let i = 0; i < attributes.length; i++) {
-        this.parseAttribute(bindings, attributes[i], path);
-      }
-    }
-    static parseAttribute(bindings, attribute, path) {
-      const regex = new RegExp(this.BINDING_REGEX.source, "g");
-      const names = [];
-      let match = regex.exec(attribute.value);
-      while (match) {
-        names.push(match[1]);
-        match = regex.exec(attribute.value);
-      }
-      if (names.length) {
-        bindings.addAttributeBinding(names, attribute.name, path);
-      }
-    }
-    static parseTextBindings(bindings, node, path) {
-      const regex = new RegExp(this.BINDING_REGEX.source, "g");
-      const match = regex.exec(`${node.textContent}`);
-      if (match) {
-        if (match.index) {
-          node.splitText(match.index);
-          return;
-        }
-        if (node.length > match[0].length) {
-          node.splitText(match[0].length);
-        }
-        const name = match[1];
-        bindings.addTextBinding(name, path);
-      }
-    }
-  };
-  TemplateBindingsParser.BINDING_REGEX = /{{([a-zA-z0-9]*)}}/;
-
-  // src/template/bound.ts
-  var BoundTemplate = class {
-    constructor(template) {
-      this._bindingsFactory = null;
-      this._template = template;
-    }
-    create(data) {
-      if (!this._bindingsFactory) {
-        this._bindingsFactory = TemplateBindingsParser.parse(this._template);
-      }
-      const instance = this._template.content.cloneNode(true);
-      const bindings = this._bindingsFactory.applyTo(instance);
-      if (data) {
-        bindings.setData(data);
-      }
-      return [instance, bindings];
-    }
-  };
-  var bound_default = BoundTemplate;
-
-  // src/noop.ts
-  var noop2 = () => null;
-
-  // src/easy.ts
-  function Easy(options) {
-    const {name, tmpl: tmpl2, style, mode} = options;
-    return function(target) {
-      const connected = target.prototype.connectedCallback ?? noop2;
-      target.prototype.connectedCallback = function() {
-        const shadow = this.attachShadow({mode});
-        if (style)
-          shadow.appendChild(style);
-        if (tmpl2) {
-          const bound = new bound_default(tmpl2);
-          const [instance, bindings] = bound.create(this);
-          target.prototype.bind = (data) => {
-            bindings.setData(data);
-          };
-          target.prototype.swap = (name2, value) => {
-            bindings.set(name2, value);
-          };
-          shadow.appendChild(instance);
-        }
-        connected.call(this);
-      };
-      customElements.define(name, target);
-    };
-  }
-
   // src/wait.ts
   var wait = (time) => {
     return (fn) => {
@@ -1842,7 +1842,6 @@
     }
     connectedCallback() {
       const title = "Usu\xE1rio";
-      const value = {key: "value"};
       const form = this.query("form");
       const handler = (event) => {
         if (form) {
@@ -1850,10 +1849,7 @@
           console.log(this.getFormValue(form));
         }
       };
-      this.bind({title, value, handler});
-      const p = this.queryProps("p");
-      if (p)
-        console.log(p.props);
+      this.bind({title, handler});
       this.name$.subscribe((name) => {
         this.swap("name", name);
       });
@@ -1875,8 +1871,6 @@
       tmpl: tmpl`
   <fieldset>
     <legend> {{title}} </legend>
-    
-    <p easy-prop$="{{value}}"></p>
     
     <form>
       <label>
@@ -1906,9 +1900,6 @@
       });
       this._destroy = new Subject();
       this.current$ = this.select(({current}) => current);
-      this.step$ = this.select(({step}) => step);
-      this.min$ = this.select(({min}) => min);
-      this.max$ = this.select(({max}) => max);
     }
     inc(value) {
       const inc = value ?? this.state.step;
@@ -1929,16 +1920,8 @@
       const dec = () => this.dec();
       const inc = () => this.inc();
       this.bind({title, dec, inc});
-      this.min$.pipe(takeUntil(this._destroy)).subscribe((min) => {
-        this.swap("min", min);
-      });
-      this.max$.pipe(takeUntil(this._destroy)).subscribe((max) => {
-        this.swap("max", max);
-      });
-      this.step$.pipe(takeUntil(this._destroy)).subscribe((step) => {
-        this.swap("step", step);
-      });
       this.current$.pipe(takeUntil(this._destroy)).subscribe((current) => {
+        console.log("current", current);
         this.swap("current", current);
       });
     }

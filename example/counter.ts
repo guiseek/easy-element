@@ -1,7 +1,5 @@
-import { EasyElement, tmpl } from '../src/render'
+import { EasyState, Easy, tmpl } from '../src'
 import { Subject, takeUntil } from 'rxjs'
-import { EasyState } from '../src/state'
-import { Easy } from '../src/easy'
 
 interface Counter {
   current: number
@@ -35,9 +33,6 @@ export class MyEasyCounterElement extends EasyState<Counter> {
   private _destroy = new  Subject<void>()
 
   current$ = this.select(({ current }) => current)
-  step$ = this.select(({ step }) => step)
-  min$ = this.select(({ min }) => min)
-  max$ = this.select(({ max }) => max)
 
   constructor() {
     super({
@@ -67,37 +62,14 @@ export class MyEasyCounterElement extends EasyState<Counter> {
   connectedCallback() {
     // Legend
     const title = 'Contador'
-    
+
+    // Handlers
     const dec = () => this.dec()
     const inc = () => this.inc()
 
     // Bind Template
     this.bind({ title, dec, inc })
 
-    // State select
-    this.min$.pipe(
-      takeUntil(this._destroy)
-    ).subscribe((min) => {
-      console.log('min', min)
-      this.swap('min', min)
-    })
-    
-    // State select
-    this.max$.pipe(
-      takeUntil(this._destroy)
-    ).subscribe((max) => {
-      console.log('max', max)
-      this.swap('max', max)
-    })
-    
-    // State select
-    this.step$.pipe(
-      takeUntil(this._destroy)
-    ).subscribe((step) => {
-      console.log('step', step)
-      this.swap('step', step)
-    })
-    
     // State select
     this.current$.pipe(
       takeUntil(this._destroy)

@@ -1,7 +1,4 @@
-import { EasyElement, tmpl } from '../src/render'
-import { EasyState } from '../src/state'
-import { Easy } from '../src/easy'
-import { wait } from '../src/wait'
+import { EasyState, Easy, tmpl, wait } from '../src'
 
 import './style.css'
 
@@ -16,8 +13,6 @@ interface User {
   tmpl: tmpl`
   <fieldset>
     <legend> {{title}} </legend>
-    
-    <p easy-prop$="{{value}}"></p>
     
     <form>
       <label>
@@ -54,9 +49,6 @@ export class MyEasyFormElement extends EasyState<User> {
     // Legend
     const title = 'Usuário'
 
-    // Prop value
-    const value = { key: 'value' }
-
     // Query selector
     const form = this.query('form')
 
@@ -69,11 +61,7 @@ export class MyEasyFormElement extends EasyState<User> {
     }
 
     // Bind Template
-    this.bind({ title, value, handler })
-
-    // Query selector with props
-    const p = this.queryProps('p')
-    if (p) console.log(p.props)
+    this.bind({ title, handler })
 
     // State select
     this.name$.subscribe((name) => {
