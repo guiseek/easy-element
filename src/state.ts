@@ -1,8 +1,10 @@
+import { BehaviorSubject, Observable, Subject } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
-import { BehaviorSubject, Observable } from 'rxjs'
 import { EasyElement } from './render'
 
-export class EasyState<T> extends EasyElement {
+export abstract class EasyState<T> extends EasyElement {
+  protected destroy = new Subject<void>()
+
   private state$: BehaviorSubject<T>
   protected get state(): T {
     return this.state$.getValue()
@@ -26,4 +28,6 @@ export class EasyState<T> extends EasyElement {
       ...newState,
     })
   }
+
+  abstract disconnectedCallback(): void
 }

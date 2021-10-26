@@ -3,12 +3,12 @@ import { noop } from './noop'
 
 export type EasyOptions<T> = {
   name: string
-  tmpl?: HTMLTemplateElement
+  html?: HTMLTemplateElement
   style?: HTMLStyleElement
 } & ShadowRootInit
 
 export function Easy<T>(options: EasyOptions<T>) {
-  const { name, tmpl, style, mode } = options
+  const { name, html, style, mode } = options
   return function <T extends CustomElementConstructor>(target: T) {
     const connected = target.prototype.connectedCallback ?? noop
 
@@ -16,8 +16,8 @@ export function Easy<T>(options: EasyOptions<T>) {
       const shadow: ShadowRoot = this.attachShadow({ mode })
       if (style) shadow.appendChild(style)
 
-      if (tmpl) {
-        const bound = new BoundTemplate(tmpl)
+      if (html) {
+        const bound = new BoundTemplate(html)
         const [instance, bindings] = bound.create(this)
 
         target.prototype.bind = (data: T) => {

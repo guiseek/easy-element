@@ -1,4 +1,5 @@
-import { EasyState, Easy, tmpl, wait } from '../src'
+import { takeUntil } from 'rxjs'
+import { EasyState, Easy, tmpl, wait, css } from '../src'
 
 import './style.css'
 
@@ -10,7 +11,7 @@ interface User {
 @Easy({
   mode: 'open',
   name: 'easy-form',
-  tmpl: tmpl`
+  html: tmpl`
   <fieldset>
     <legend> {{title}} </legend>
     
@@ -28,23 +29,51 @@ interface User {
     </form>
   </fieldset>
   `,
+  style: css`
+    :host {
+      display: block;
+    }
+
+    fieldset {
+      display: inline-flex;
+      border-width: 1px;
+      border-color: #ccc;
+      border-style: solid;
+      border-radius: 6px;
+    }
+
+    legend {
+      opacity: 0.6;
+    }
+
+    label {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+
+    button {
+      float: right;
+      border-width: 1px;
+      border-color: #ccc;
+      border-style: solid;
+    }
+
+    input {
+      border-width: 1px;
+      border-color: #ccc;
+      border-style: solid;
+      width: 140px;
+    }
+  `,
 })
 export class MyEasyFormElement extends EasyState<User> {
-  name$ = this.select((user) => user.name ?? '')
-  email$ = this.select((user) => user.email ?? '')
+  user$ = this.select((user) => user ?? {})
 
   constructor() {
-    super({ name: null, email: null })
+    super({ name: '', email: '' })
   }
-
-  setName(name: string) {
-    this.setState({ name })
-  }
-
-  setEmail(email: string) {
-    this.setState({ email })
-  }
-
   connectedCallback() {
     // Legend
     const title = 'Usuário'
@@ -64,24 +93,24 @@ export class MyEasyFormElement extends EasyState<User> {
     this.bind({ title, handler })
 
     // State select
-    this.name$.subscribe((name) => {
-      this.swap('name', name)
-    })
-    
-    // State select
-    this.email$.subscribe((email) => {
-      this.swap('email', email)
-    })
-    
+    this.user$
+      .pipe(takeUntil(this.destroy))
+      .subscribe(({ name = '', email = '' }) => {
+        this.bind({ name, email })
+      })
+
     // Wait in seconds
     wait(2)(() => {
-      // State set
-      this.setName('Guilherme')
-      
+      this.swap('name', 'Guilherme')
+
       wait(2)(() => {
-        // State set
-        this.setEmail('guiseek@email.com')
+        this.swap('email', 'guiseek@email.com')
       })
     })
+  }
+
+  disconnectedCallback() {
+    this.destroy.next()
+    this.destroy.complete()
   }
 }

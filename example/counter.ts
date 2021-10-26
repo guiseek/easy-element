@@ -1,4 +1,4 @@
-import { EasyState, Easy, tmpl } from '../src'
+import { EasyState, Easy, tmpl, css } from '../src'
 import { Subject, takeUntil } from 'rxjs'
 
 interface Counter {
@@ -11,27 +11,53 @@ interface Counter {
 @Easy({
   mode: 'open',
   name: 'easy-counter',
-  tmpl: tmpl`
-  <fieldset>
-    <legend> {{title}} </legend>
+  html: tmpl`
+    <fieldset>
+      <legend> {{title}} </legend>
+      
+      <form>
+        <button type="button" on-click={{dec}}> - </button>
+        <input
+          type="text"
+          min="{{min}}"
+          max="{{max}}"
+          step="{{step}}"
+          value="{{current}}"
+          readonly
+        />
+        <button type="button" on-click={{inc}}> + </button>
+      </form>
+    </fieldset>
+  `,
+  style: css`
+    legend {
+      opacity: .6;
+    }
+
+    button {
+      border-width: 1px;
+      border-color: #ccc;
+      border-style: solid;
+    }
     
-    <form>
-      <button type="button" on-click={{dec}}> - </button>
-      <input
-        type="number"
-        min="{{min}}"
-        max="{{max}}"
-        step="{{step}}"
-        value="{{current}}"
-      />
-      <button type="button" on-click={{inc}}> + </button>
-    </form>
-  </fieldset>
+    input {
+      border-width: 1px;
+      border-color: #ccc;
+      border-style: solid;
+      text-align: center;
+      width: 40px;
+    }
+
+    fieldset {
+      display: inline-flex;
+      border-width: 1px;
+      border-color: #ccc;
+      border-style: solid;
+      border-radius: 6px;
+    }
   `,
 })
 export class MyEasyCounterElement extends EasyState<Counter> {
-  private _destroy = new  Subject<void>()
-
   current$ = this.select(({ current }) => current)
 
   constructor() {
@@ -39,7 +65,7 @@ export class MyEasyCounterElement extends EasyState<Counter> {
       min: 0,
       step: 10,
       max: 100,
-      current: 0
+      current: 0,
     })
   }
 
@@ -50,7 +76,7 @@ export class MyEasyCounterElement extends EasyState<Counter> {
       this.setState({ current: val })
     }
   }
-  
+
   dec(value?: number) {
     const dec = value ?? this.state.step
     const val = this.state.current - dec
@@ -71,16 +97,14 @@ export class MyEasyCounterElement extends EasyState<Counter> {
     this.bind({ title, dec, inc })
 
     // State select
-    this.current$.pipe(
-      takeUntil(this._destroy)
-    ).subscribe((current) => {
+    this.current$.pipe(takeUntil(this.destroy)).subscribe((current) => {
       console.log('current', current)
       this.swap('current', current)
     })
   }
 
   disconnectedCallback() {
-    this._destroy.next()
-    this._destroy.complete()
+    this.destroy.next()
+    this.destroy.complete()
   }
 }
