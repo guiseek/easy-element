@@ -1,0 +1,31 @@
+{
+  "postAttachCommand": "",
+  "image": "docker.pkg.github.com/github/github/bootstrap-nightly:latest",
+  "runArgs": ["--privileged", "--security-opt", "seccomp=unconfined"],
+  "overrideCommand": false,
+  "hostRequirements": {},
+  "settings": {
+    "files.watcherExclude": {
+      "**/vendor": true,
+      "**/.git": true,
+      "**/tmp": true,
+      "**/node_modules": true
+    }
+  },
+  "extensions": [
+    "/root/hello-github.vsix",
+    "dbaeumer.vscode-eslint",
+    "ethan-reesor.vscode-byebug",
+    "github.copilot"
+  ],
+  "forwardPorts": [80,2222],
+  "appPort": [80,2222],
+  "portsAttributes": {
+    "80": {
+      "label": "web"
+    },
+    "2222": {
+      "label": "ssh"
+    }
+  }
+}
